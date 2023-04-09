@@ -39,6 +39,19 @@ func Test_Equals(t *testing.T) {
 		t.Fail()
 		return
 	}
+
+	req, err = New(">1.2.1")
+	if err != nil {
+		t.Error("expected New() not to return error but got:", err)
+		t.Fail()
+		return
+	}
+
+	if !equals(req.requirements[0], v2) {
+		t.Error("expected requirement and v2 to be equal")
+		t.Fail()
+		return
+	}
 }
 
 func Test_NotEquals(t *testing.T) {
@@ -148,47 +161,69 @@ func Test_LessThan(t *testing.T) {
 
 func Test_Gte(t *testing.T) {
 	req, err := New(">= 1.3.5")
-	if err != nil || req == nil {
-		t.Error("BUG: New() returned error for valid req:", err)
+	if err != nil {
+		t.Error("bug: New() returned error for valid req:", err)
+		t.Fail()
+		return
+	}
+	if req == nil {
+		t.Error("bug: req should not be nil")
 		t.Fail()
 		return
 	}
 
 	v, err := version.New("1.3.5")
 	if err != nil {
-		t.Error("version.New returned error for valid version:", err)
+		t.Error("bug: version.New() returned error for valid version:", err)
+		t.Fail()
+		return
+	}
+	if v == nil {
+		t.Error("bug: v should not be nil")
 		t.Fail()
 		return
 	}
 
 	if !gte(req.requirements[0], v) {
-		t.Error("expected matching versions to return true")
+		t.Error("expected v to be >= requirement")
 		t.Fail()
 		return
 	}
 
-	v2, err := version.New("1.2.1")
+	v2, err := version.New("1.3.6")
 	if err != nil {
-		t.Error("version.New returned error for valid version:", err)
+		t.Error("bug: expected version.New() not to return error but got:", err)
 		t.Fail()
 		return
 	}
 
-	if gte(req.requirements[0], v2) {
-		t.Error("expected lesser versions not to true")
+	if v2 == nil {
+		t.Error("expected v2 not to be nil")
 		t.Fail()
 		return
 	}
 
-	v3, err := version.New("1.36")
+	if !gte(req.requirements[0], v2) {
+		t.Error("expected v2 to be >= requirement")
+		t.Fail()
+		return
+	}
+
+	v3, err := version.New("1.3.1")
 	if err != nil {
-		t.Error("version.New returned error:", err)
+		t.Error("bug: expected version.New() not to return error but got:", err)
 		t.Fail()
 		return
 	}
 
-	if !gte(req.requirements[0], v3) {
-		t.Error("expected v3 to be greater than requirement")
+	if v2 == nil {
+		t.Error("expected v2 not to be nil")
+		t.Fail()
+		return
+	}
+
+	if gte(req.requirements[0], v3) {
+		t.Error("expected v3 not to be >= requirement")
 		t.Fail()
 		return
 	}

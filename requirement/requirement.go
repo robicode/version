@@ -15,24 +15,25 @@ import (
 )
 
 var (
+	// Order of operations is important!
 	Ops = []string{
-		"=",
 		"!=",
-		">",
-		"<",
 		">=",
 		"<=",
 		"~>",
+		">",
+		"<",
+		"=",
 	}
 
 	ops = []opFunc{
-		{Op: "=", Func: equals},
 		{Op: "!=", Func: notEquals},
-		{Op: ">", Func: greaterThan},
-		{Op: "<", Func: lessThan},
 		{Op: ">=", Func: gte},
 		{Op: "<=", Func: lte},
 		{Op: "~>", Func: tildeGT},
+		{Op: ">", Func: greaterThan},
+		{Op: "<", Func: lessThan},
+		{Op: "=", Func: equals},
 	}
 
 	quoted  string = strings.Join(Ops, "|")
@@ -79,10 +80,9 @@ func DefaultPrereleaseRequirement() *RequirementSpecifier {
 
 func New(requirements ...string) (*Requirement, error) {
 	var reqs []*RequirementSpecifier
-	var ret Requirement
 
 	for _, value := range requirements {
-		req, err := ret.parse(value)
+		req, err := parse(value)
 		if err != nil {
 			return nil, err
 		}
@@ -95,17 +95,9 @@ func New(requirements ...string) (*Requirement, error) {
 	}, nil
 }
 
-// Parse +obj+, returning an <tt>[op, version]</tt> pair. +obj+ can
-// be a String or a Gem::Version.
-//
-// If +obj+ is a String, it can be either a full requirement
-// specification, like <tt>">= 1.2"</tt>, or a simple version number,
-// like <tt>"1.2"</tt>.
-//
-//	parse("> 1.0")                 # => [">", Gem::Version.new("1.0")]
-//	parse("1.0")                   # => ["=", Gem::Version.new("1.0")]
-//	parse(Gem::Version.new("1.0")) # => ["=",  Gem::Version.new("1.0")]
-func (r *Requirement) parse(requirement string) (*RequirementSpecifier, error) {
+// parse parses +requirement+, returning an *RequirementSpecifier.
+// Returns nil and an error on failure.
+func parse(requirement string) (*RequirementSpecifier, error) {
 	reg := regexp.MustCompile(pattern)
 	var operator string
 
@@ -113,7 +105,16 @@ func (r *Requirement) parse(requirement string) (*RequirementSpecifier, error) {
 		return nil, fmt.Errorf("unable to parse requirement: '%s' with regex: %s", requirement, pattern)
 	}
 
-	parts := strings.Split(requirement, " ")
+	var parts []string
+	for _, op := range Ops {
+		if strings.Contains(requirement, op) {
+			parts = append(parts, op)
+			p1 := strings.Replace(requirement, op, "", 1)
+			parts = append(parts, p1)
+			break
+		}
+	}
+
 	if len(parts) != 2 {
 		return nil, errors.New("requirement should be an operator and version (e.g. '> 3.0')")
 	}
@@ -126,7 +127,7 @@ func (r *Requirement) parse(requirement string) (*RequirementSpecifier, error) {
 	}
 
 	if operator == "" {
-		return nil, fmt.Errorf("invalid operator %s", operator)
+		return nil, fmt.Errorf("invalid operator '%s'", operator)
 	}
 
 	if operator == ">=" && parts[1] == "0" {
@@ -135,16 +136,21 @@ func (r *Requirement) parse(requirement string) (*RequirementSpecifier, error) {
 		return DefaultPrereleaseRequirement(), nil
 	}
 
+	ver, err := version.New(parts[1])
+	if err != nil {
+		return nil, err
+	}
+
 	return &RequirementSpecifier{
 		Operator: operator,
-		Version:  version.New2(parts[1]),
+		Version:  ver,
 	}, nil
 }
 
 func (r *Requirement) Concat(requirements ...string) *Requirement {
 	for _, req := range requirements {
 		for _, registeredReq := range r.requirements {
-			splitReq, err := r.parse(req)
+			splitReq, err := parse(req)
 			if err != nil {
 				return nil
 			}
@@ -163,7 +169,7 @@ func (r *Requirement) Concat(requirements ...string) *Requirement {
 // HasNone returns true if this *Requirement has no requirements.
 func (r *Requirement) HasNone() bool {
 	if len(r.requirements) == 1 {
-		return r.requirements[0].Operator == DefaultRequirement().Operator && r.requirements[0].Version == DefaultRequirement().Version
+		return r.requirements[0].Operator == DefaultRequirement().Operator && r.requirements[0].Version.Compare(DefaultPrereleaseRequirement().Version) == 0
 	}
 
 	return false

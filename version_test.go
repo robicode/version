@@ -257,7 +257,7 @@ func Test_Segments(t *testing.T) {
 		}
 
 		v, _ := New(test.Version)
-		segments := v.segments()
+		segments := v.Segments()
 		validSegments := test.ExpectedSegments
 
 		if len(segments) != len(validSegments) {

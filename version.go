@@ -93,7 +93,7 @@ func New2(version string) *Version {
 //
 // Pre-release (alpha) parts, e.g, 5.3.1.b.2 => 5.4, are ignored.
 func (v *Version) Bump() (*Version, error) {
-	segments := v.segments()
+	segments := v.Segments()
 
 	for i, segment := range segments {
 		if regexp.MustCompile(`[a-zA-Z]+`).MatchString(segment) {
@@ -131,8 +131,8 @@ func isCorrect(version string) bool {
 }
 
 // segments splits the version string into its component parts.
-func (v *Version) segments() []string {
-	results := regexp.MustCompile(`[0-9]+|[a-zA-Z]+`).FindAllString(v.version, -1)
+func (ver *Version) Segments() []string {
+	results := regexp.MustCompile(`[0-9]+|[a-zA-Z]+`).FindAllString(ver.version, -1)
 	if len(results) > 0 {
 		return results
 	}
@@ -153,7 +153,7 @@ func (v *Version) Release() *Version {
 		return v
 	}
 
-	segments := v.segments()
+	segments := v.Segments()
 
 	for i, segment := range segments {
 		if regexp.MustCompile(`[a-zA-Z]+`).MatchString(segment) {
@@ -179,7 +179,7 @@ func (v *Version) Eql(other *Version) bool {
 
 // A recommended version for use with a ~> Requirement
 func (v *Version) ApproximateRecommendation() string {
-	segments := v.segments()
+	segments := v.Segments()
 
 	for i, segment := range segments {
 		if regexp.MustCompile(`[a-zA-Z]+`).MatchString(segment) {
@@ -207,7 +207,7 @@ func (v *Version) ApproximateRecommendation() string {
 // splitSegments splits the segments into integer and alphanumeric arrays.
 func (v *Version) splitSegments() ([]string, []string) {
 	var stringStart int
-	segments := v.segments()
+	segments := v.Segments()
 
 	for i, v := range segments {
 		if regexp.MustCompile(`[a-zA-Z]+`).MatchString(v) {
